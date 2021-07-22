@@ -8,17 +8,16 @@
 from . import *
 
 
-@asst.on_message(
-    filters.command(["stop", f"stop@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(stop|stop@{vcusername})$",
+    from_users=VC_AUTHS()
 )
-async def stopvc(_, message):
+async def stopvc(message):
     ms = message.text.split(" ", maxsplit=1)
     try:
         chat = (await Client.get_chat(ms[1])).id
     except IndexError:
-        chat = message.chat.id
+        chat = get_chat_id(message)
     except Exception as Ex:
         return await eor(message, str(Ex))
     CallsClient.pause_stream(chat)
@@ -29,20 +28,19 @@ async def stopvc(_, message):
     filters.command("stop", HNDLR) & filters.user(VC_AUTHS()) & ~filters.edited
 )
 async def ustop(_, message):
-    await stopvc(_, message)
+    await stopvc(message)
 
 
-@asst.on_message(
-    filters.command(["resume", f"resume@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(resume|resume@{vcusername})$",
+    from_users=VC_AUTHS()
 )
-async def resume_vc(_, message):
+async def resume_vc(message):
     ms = message.text.split(" ", maxsplit=1)
     try:
         chat = (await Client.get_chat(ms[1])).id
     except IndexError:
-        chat = message.chat.id
+        chat = get_chat_id(message)
     except Exception as Ex:
         return await eor(message, str(Ex))
     CallsClient.resume_stream(chat)
@@ -53,4 +51,4 @@ async def resume_vc(_, message):
     filters.command("resume", HNDLR) & filters.user(VC_AUTHS()) & ~filters.edited
 )
 async def vcresume(_, message):
-    await resume_vc(_, message)
+    await resume_vc(message)

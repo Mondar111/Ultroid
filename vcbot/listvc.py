@@ -8,12 +8,11 @@
 from . import *
 
 
-@asst.on_message(
-    filters.command(["listvc", f"listvc@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(listvc|listvc@{vcusername})$",
+    from_users=VC_AUTHS()
 )
-async def list_handler(_, message):
+async def list_handler(message):
     OUT = ""
     if len(list(CallsClient.active_calls.keys())) == 0:
         return await eor(message, "No Active Group Calls Running..")
@@ -28,4 +27,4 @@ async def list_handler(_, message):
     filters.outgoing & filters.command("listvc", HNDLR) & ~filters.edited
 )
 async def llhnf(_, message):
-    await list_handler(_, message)
+    await list_handler(message)

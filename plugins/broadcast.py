@@ -197,7 +197,7 @@ async def forw(event):
     ignore_dualmode=True,
 )
 async def sending(event):
-    x = await eor(event, "`Processing...`")
+    x = await eor(event, get_string("com_1"))
     if not event.is_reply:
         return await x.edit("Reply to a message to broadcast.")
     channels = get_channels()

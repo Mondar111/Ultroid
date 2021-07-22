@@ -11,6 +11,7 @@ authors:
 # commons
 com_1: "`Processing...`"
 com_2: "`Searching...`"
+
 # help
 help_1: "`{}` is not a valid plugin!"
 help_2: "The bot did not respond to the inline query.\nConsider using `{}restart`"

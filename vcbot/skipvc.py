@@ -9,17 +9,16 @@ from . import *
 from .play import queue_func
 
 
-@asst.on_message(
-    filters.command(["skip", f"skip@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(skip|skip@{vcusername})$",
+    from_users=VC_AUTHS()
 )
-async def skiplife(_, message):
+async def skiplife(message):
     mst = message.text.split(" ", maxsplit=1)
     try:
         chat = (await Client.get_chat(mst[1])).id
     except BaseException:
-        chat = message.chat.id
+        chat = get_chat_id(message)
     await queue_func(chat)
 
 
@@ -30,4 +29,4 @@ async def skiplife(_, message):
     & ~filters.forwarded
 )
 async def vc_skipe(_, message):
-    await skiplife(_, message)
+    await skiplife(message)

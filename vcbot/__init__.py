@@ -14,15 +14,17 @@ import re
 from datetime import datetime as dt
 
 import ffmpeg
+from strings import get_string
+from telethon import Button, TelegramClient
 from pyrogram import Client, filters
 from pyrogram.raw import functions
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pytgcalls import StreamType
 from pyUltroid import HNDLR, CallsClient
-from pyUltroid import asst as tele_asst
+from pyUltroid import asst
+from pyUltroid.misc._assistant import asst_cmd, callback
 from pyUltroid import udB, ultroid_bot
-from pyUltroid import vcasst as asst
-from pyUltroid.functions.all import bash, dler, time_formatter
+from pyUltroid.functions.all import bash, dler, time_formatter, make_mention, mediainfo
 from pyUltroid.misc import sudoers
 from youtube_dl import YoutubeDL
 from youtubesearchpython import VideosSearch
@@ -33,7 +35,7 @@ LOG_CHANNEL = int(udB.get("LOG_CHANNEL"))
 QUEUE = {}
 
 _yt_base_url = "https://www.youtube.com/watch?v="
-vcusername = tele_asst.me.username
+vcusername = asst.me.username
 
 
 def VC_AUTHS():
@@ -44,15 +46,13 @@ def VC_AUTHS():
 
 
 def reply_markup(chat_id: int):
-    return InlineKeyboardMarkup(
-        [
+    return [
             [
-                InlineKeyboardButton("Pause", callback_data=f"vcp_{chat_id}"),
-                InlineKeyboardButton("Skip", callback_data=f"skip_{chat_id}"),
+                Button.inline("Pause", data=f"vcp_{chat_id}"),
+                Button.inline("Skip", data=f"skip_{chat_id}"),
             ],
-            [InlineKeyboardButton("Exit", callback_data=f"ex_{chat_id}")],
+            [Button.inline("Exit", data=f"ex_{chat_id}")],
         ]
-    )
 
 
 def add_to_queue(chat_id, song, song_name, from_user, duration):
@@ -108,11 +108,25 @@ def get_from_queue(chat_id):
     return song, title, from_user, play_this, duration
 
 
-async def eor(message, text, *args, **kwargs):
-    if message.outgoing:
-        return await message.edit_text(text, *args, **kwargs)
-    return await message.reply_text(text, *args, **kwargs)
+# Working with Pyrogram(Client) & Telethon(asst)
 
+def get_chat_id(event):
+    if hasattr(event, "chat_id"):
+        return event.chat_id
+    return event.chat.id
+
+async def eor(message, text, link_preview=False):
+    if (hasattr(message, "out") and message.out or 
+        (hasattr(message, "outgoing") and message.outgoing)):
+        return await message.edit(text, disable_web_page_preview=not link_preview)
+    return await message.reply(text, link_preview=link_preview)
+
+
+async def reply_photo(event, caption=" ", file=None, link_preview=False, buttons=None):
+    if isinstance(event._client, TelegramClient):
+        return await event.reply(caption, file=file, link_preview=link_preview, buttons=buttons)
+    return await event.reply_photo(file, caption=caption)
+        
 
 async def download(event, query, chat, ts):
     song = f"VCSONG_{chat}_{ts}.raw"

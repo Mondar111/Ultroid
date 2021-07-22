@@ -12,49 +12,42 @@ import random
 from . import *
 
 
-@asst.on_message(
-    filters.command(["play", f"play@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
-    & filters.group
+@asst_cmd(
+    f"(play|play@{vcusername})",
+    from_users=VC_AUTHS()
 )
-async def startup(_, message):
-    msg = await eor(message, "`Processing..`")
-    song = message.text.split(" ", maxsplit=1)
-    reply = message.reply_to_message
+async def startup(event):
+    msg = await eor(event, get_string("com_1"))
+    song = event.text.split(" ", maxsplit=1)
+    reply = await event.get_reply_message()
 
     if len(song) > 1 and song[1].startswith("@" or "-"):
         song = song[1].split(" ", maxsplit=1)
         chat = await Client.get_chat(song[0])
     else:
-        chat = message.chat
+        chat = await Client.get_chat(get_chat_id(event))
 
     thumb, med, song_name = None, None, ""
-    if reply:
-        if reply.audio:
-            med = reply.audio
-            song_name = med.title
-        elif reply.video or reply.audio:
-            med = reply.video or reply.audio
-            song_name = med.file_name
-        if med and med.thumbs:
-            dll = med.thumbs[0].file_id
-            thumb = await asst.download_media(dll)
     TS = dt.now().strftime("%H:%M:%S")
     if not reply and len(song) > 1:
         song, thumb, song_name, duration = await download(msg, song[1], chat.id, TS)
-    elif not reply and len(song) == 1:
-        return await msg.edit_text("Pls Give me Something to Play...")
-    elif not (reply.audio or reply.voice or reply.video):
-        return await msg.edit_text("Pls Reply to Audio File or Give Search Query...")
-    else:
-        dl = await reply.download()
+    elif reply and reply.media:
+        if mediainfo(reply.media) not in ["video", "audio"]:
+            return await msg.edit("Reply to Audio File or Give Query to Search..")
+        try:
+            thumb = await reply.download_media(thumb=-1)
+            med = reply.file
+        except TypeError:
+            pass
+        dl = await reply.download_media()
         duration = med.duration
         song = f"VCSONG_{chat.id}_{TS}.raw"
         await bash(
             f'ffmpeg -i "{dl}" -f s16le -ac 1 -acodec pcm_s16le -ar 48000 {song} -y'
         )
-    from_user = message.from_user.mention
+    else:
+        return await msg.edit("Reply to Audio File or Give Query to Search..")
+    from_user = make_mention(event.sender if hasattr(event, "sender") else event.from_user)
     if chat.id in CallsClient.active_calls.keys():
         add_to_queue(chat.id, song, song_name, from_user, duration)
         return await msg.edit(
@@ -70,20 +63,20 @@ async def startup(_, message):
                 )
             )
         except Exception as E:
-            return await msg.edit_text(str(E))
+            return await msg.edit(str(E))
     if thumb:
         await msg.delete()
-        msg = await message.reply_photo(
+        msg = await reply_photo(
             thumb,
             caption=f"🎸 **Playing :** {song_name}\n**☘ Duration :** {time_formatter(duration*1000)}\n👤 **Requested By :** {from_user}",
-            reply_markup=reply_markup(chat.id),
+            buttons=reply_markup(chat.id),
         )
         if os.path.exists(thumb):
             os.remove(thumb)
     try:
         CallsClient.join_group_call(chat.id, song)
     except Exception as E:
-        return await msg.edit_text(str(E))
+        return await msg.edit(str(E))
     CH = await asst.send_message(
         LOG_CHANNEL, f"Joined Voice Call in {chat.title} [`{chat.id}`]"
     )
@@ -95,24 +88,24 @@ async def startup(_, message):
 
 @Client.on_message(filters.me & filters.command(["play"], HNDLR) & ~filters.edited)
 async def cstartup(_, message):
-    await startup(_, message)
+    await startup(message)
 
 
 async def queue_func(chat_id: int):
     try:
         song, title, from_user, pos, dur = get_from_queue(chat_id)
         CallsClient.change_stream(chat_id, song)
-       #CallsClient._add_active_call(chat_id)
+      # CallsClient._add_active_call(chat_id)
         xx = await asst.send_message(
             chat_id,
             f"**Playing :** {title}\n**Duration** : {time_formatter(dur*1000)}\n**Requested by**: {from_user}",
-            reply_markup=reply_markup(chat_id),
+            buttons=reply_markup(chat_id),
         )
         QUEUE[chat_id].pop(pos)
         if not QUEUE[chat_id]:
             QUEUE.pop(chat_id)
         await asyncio.sleep(dur + 5)
-     #   CallsClient._remove_active_call(chat_id)
+      # CallsClient._remove_active_call(chat_id)
         await xx.delete()
     except (IndexError, KeyError):
         CallsClient.leave_group_call(chat_id)

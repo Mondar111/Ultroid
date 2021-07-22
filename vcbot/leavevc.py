@@ -8,17 +8,15 @@
 from . import *
 
 
-@asst.on_message(
-    filters.command(["leave", f"leave@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(f"(leave|leave@{vcusername})",
+          from_users=VC_AUTHS()
 )
-async def leavehandler(_, message):
+async def leavehandler(message):
     spli = message.text.split(" ", maxsplit=1)
     try:
         chat = (await Client.get_chat(spli[1])).id
     except IndexError:
-        chat = message.chat.id
+        chat = get_chat_id(message)
     except Exception as Ex:
         return await eor(message, str(Ex))
     CallsClient.leave_group_call(chat)
@@ -33,4 +31,4 @@ async def leavehandler(_, message):
 
 @Client.on_message(filters.me & filters.command("leavevc", HNDLR) & ~filters.edited)
 async def lhandler(_, message):
-    await leavehandler(_, message)
+    await leavehandler(message)

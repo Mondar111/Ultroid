@@ -10,13 +10,11 @@ from . import *
 HELP_TEXT = "**View All Vc Commands Here :**\nhttps://telegra.ph/Vc-Commands-07-17-2"
 
 
-@asst.on_message(
-    filters.command(["vchelp", f"vchelp@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
-    & filters.group
+@asst_cmd(
+    f"(vchelp|vchelp@{vcusername})$",
+    from_users=VC_AUTHS()
 )
-async def pass_it(_, message):
+async def pass_it(message):
     await eor(message, HELP_TEXT)
 
 

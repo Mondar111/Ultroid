@@ -8,19 +8,16 @@
 from . import *
 
 
-@asst.on_message(
-    filters.command(["playfrom", f"playfrom@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(f"(playfrom|playfrom@{vcusername})",
+    from_users=VC_AUTHS()
 )
-async def PlayFrom(client, message):
+async def PlayFrom(message):
     chat = message.text
     spl = chat.split(" ", maxsplit=1)
-    limit = 100
-    PlayAT = message.chat
+    limit = 50
     CHN_PLAY = udB.get("CHN_PLAY")
-    if CHN_PLAY:
-        PlayAT = await Client.get_chat(CHN_PLAY)
+    CHN_PLAY = CHN_PLAY if CHN_PLAY else get_chat_id(message)
+    PlayAT = await Client.get_chat(CHN_PLAY)
     if ";" in chat:
         lct = spl[1].split(";", maxsplit=1)
         limit = int(lct[-1])
@@ -46,7 +43,7 @@ async def PlayFrom(client, message):
     for i in range(TTl):
         music = ALL[i]
         durat = music.audio.duration
-        sleepy = durat + 20
+        sleepy = durat + 10
         dl = await music.download()
         TS = dt.now().strftime("%H:%M:%S")
         song = f"VCSONG_{PlayAT.id}_{TS}.raw"
@@ -56,14 +53,13 @@ async def PlayFrom(client, message):
         os.remove(dl)
         if PlayAT.id in CallsClient.active_calls.keys():
             add_to_queue(
-                PlayAT.id, song, music.audio.title, message.from_user.mention, sleepy
+                PlayAT.id, song, music.audio.title, make_mention(message.sender), sleepy
             )
         else:
             try:
                 CallsClient.join_group_call(PlayAT.id, song)
-                mn = await message.reply_text(
-                    f"✤ **Playing** : {music.audio.title}\n✤ **Song No** : {i+1}/{TTl}\n✤ **Duration :** {time_formatter(durat*1000)}\n**✤ At** : `{PlayAT.title}`",
-                    quote=False,
+                mn = await message.reply(
+                    f"✤ **Playing** : {music.audio.title}\n✤ **Song No** : {i+1}/{TTl}\n✤ **Duration :** {time_formatter(durat*1000)}\n**✤ At** : `{PlayAT.title}`"
                 )
                 Durat = durat
                 Song = song
@@ -81,4 +77,4 @@ async def PlayFrom(client, message):
 
 @Client.on_message(filters.me & filters.command("playfrom") & ~filters.edited)
 async def pleya(_, message):
-    await PlayFrom(_, message)
+    await PlayFrom(message)

@@ -8,14 +8,14 @@
 from . import *
 
 
-@asst.on_message(
-    filters.command(["clearqueue", f"clearqueue@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(clearqueue|clearqueue@{vcusername})",
+    from_users=VC_AUTHS()
 )
-async def clear_queue(_, message):
+async def clear_queue(message):
+    chat_id = get_chat_id(message)
     try:
-        QUEUE.pop(message.chat.id)
+        QUEUE.pop(chat_id)
     except KeyError:
         return await eor(message, "Queue Not Found !")
     # Todo - Clear Remaining Songs
@@ -26,26 +26,25 @@ async def clear_queue(_, message):
     filters.outgoing & filters.command("clearqueue", HNDLR) & ~filters.edited
 )
 async def clearqueue_vc(_, message):
-    await clear_queue(_, message)
+    await clear_queue(message)
 
 
-@asst.on_message(
-    filters.command(["queue", f"queue@{vcusername}"])
-    & filters.user(VC_AUTHS())
-    & ~filters.edited
+@asst_cmd(
+    f"(queue|queue@{vcusername})",
+    from_users=VC_AUTHS()
 )
-async def queuee(_, e):
-    mst = e.text.split(" ", maxsplit=1)
+async def queuee(event):
+    mst = event.text.split(" ", maxsplit=1)
     try:
         chat = (await Client.get_chat(mst[1])).id
     except BaseException:
-        chat = e.chat.id
+        chat = get_chat_id(event)
     txt = list_queue(chat)
     if txt:
-        return await eor(e, txt)
-    await eor(e, "No Queue Found !")
+        return await eor(event, txt)
+    await eor(event, "No Queue Found !")
 
 
 @Client.on_message(filters.outgoing & filters.command("queue", HNDLR) & ~filters.edited)
 async def queue_vc(_, message):
-    await queuee(_, message)
+    await queuee(message)
